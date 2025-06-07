@@ -27,6 +27,8 @@ INSTALLED_APPS = [
     'VigilanceAPP',
     'UsuariosAPP',
     'django_filters',
+    'rest_framework_simplejwt',
+    'corsheaders',
 
 ]
 
@@ -38,7 +40,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'vigilanceAPI.urls'
@@ -122,3 +124,6 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,              # Blacklist do refresh token antigo quando for rotacionado
     'AUTH_HEADER_TYPES': ('Bearer',),              # Tipo de header que será usado na autenticação (padrão Bearer)
 }
+
+
+CORS_ALLOW_ALL_ORIGINS = True

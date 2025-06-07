@@ -1,6 +1,7 @@
 from django.urls import path, include
 from .views import (
     ClientesCreateView,
+    ConfiguracaoComprovanteViewSet,
     TitulosCreateView, 
     ComprovanteListView, 
 )
@@ -13,6 +14,6 @@ router = DefaultRouter()
 router.register(r'clientes', ClientesCreateView, basename='clientes')
 router.register(r'titulos', TitulosCreateView, basename='titulos')
 router.register(r'comprovantes', ComprovanteListView, basename='comprovantes')
-
+router.register(r'configuracao-comprovante', ConfiguracaoComprovanteViewSet)
 
 urlpatterns = router.urls

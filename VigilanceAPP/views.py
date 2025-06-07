@@ -1,7 +1,7 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
-from .models import Comprovante, Cliente, Titulo
-from .serializers import ComprovanteSerializer, ClienteSerializer, TituloSerializer
+from .models import Comprovante, Cliente, ConfiguracaoComprovante, Titulo
+from .serializers import ComprovanteSerializer, ClienteSerializer, ConfiguracaoComprovanteSerializer, TituloSerializer
 from .filters import ComprovanteFilter, ClienteFilter, TituloFilter
 
 
@@ -26,3 +26,9 @@ class ComprovanteListView(viewsets.ModelViewSet):
     serializer_class = ComprovanteSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ComprovanteFilter
+
+
+
+class ConfiguracaoComprovanteViewSet(viewsets.ModelViewSet):
+    queryset = ConfiguracaoComprovante.objects.all()
+    serializer_class = ConfiguracaoComprovanteSerializer

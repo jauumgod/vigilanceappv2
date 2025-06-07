@@ -4,6 +4,8 @@ class Cliente(models.Model):
     nome = models.CharField(max_length=255)
     telefone = models.CharField(max_length=14)
     endereco = models.CharField(max_length=255)
+    valor = models.FloatField(default=0)
+    vencimento = models.DateField(blank=True)
     ativo = models.BooleanField(default=True)
 
     def __str__(self):
@@ -15,12 +17,18 @@ class Titulo(models.Model):
     vencimento = models.DateField()
     quitado = models.BooleanField(default=False)
 
+    def save(self, *args, **kwargs):
+        # Sempre pega o valor atualizado do cliente antes de salvar
+        self.valor = self.cliente.valor  
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.cliente}"
 
 
+
 class ConfiguracaoComprovante(models.Model):
-    logo = models.ImageField(upload_to='logos/')
+    logo = models.ImageField(upload_to='logos/', blank=True)
 
     def __str__(self):
         return f"Logo do comprovante - ID {self.id}"

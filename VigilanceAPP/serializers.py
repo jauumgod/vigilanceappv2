@@ -1,4 +1,4 @@
-from .models import Titulo, Cliente, Comprovante
+from .models import ConfiguracaoComprovante, Titulo, Cliente, Comprovante
 from rest_framework import serializers
 
 
@@ -18,3 +18,9 @@ class ComprovanteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comprovante
         fields = '__all__'  # ou liste os campos, incluindo 'logo'
+    
+
+class ConfiguracaoComprovanteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ConfiguracaoComprovante
+        fields = ['id', 'logo']
