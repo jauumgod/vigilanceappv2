@@ -5,21 +5,27 @@ class Cliente(models.Model):
     telefone = models.CharField(max_length=14)
     endereco = models.CharField(max_length=255)
     valor = models.FloatField(default=0)
-    vencimento = models.DateField(blank=True)
+    vencimento = models.IntegerField(default=1)
     ativo = models.BooleanField(default=True)
 
     def __str__(self):
         return self.nome
 
+
 class Titulo(models.Model):
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='titulos')
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     vencimento = models.DateField()
+    pagamento = models.DateField(blank=True, null=True)
     quitado = models.BooleanField(default=False)
+    endereco = models.CharField(max_length=255, blank=True)
+
 
     def save(self, *args, **kwargs):
         # Sempre pega o valor atualizado do cliente antes de salvar
-        self.valor = self.cliente.valor  
+        self.valor = self.cliente.valor
+        self.endereco = self.cliente.endereco
+        
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -2,12 +2,13 @@ import django_filters
 from .models import Comprovante, Titulo, Cliente
 
 class TituloFilter(django_filters.FilterSet):
-    data_pagamento = django_filters.DateFromToRangeFilter()
-    cliente = django_filters.CharFilter(field_name='cliente__nome', lookup_expr='icontains')
+    vencimento = django_filters.DateFromToRangeFilter()
+    nome = django_filters.CharFilter(field_name='cliente__nome', lookup_expr='icontains')
+    endereco = django_filters.CharFilter(field_name='cliente__endereco', lookup_expr='icontains')
 
     class Meta:
         model = Titulo
-        fields = ['cliente', 'vencimento', 'quitado']
+        fields = ['vencimento', 'nome', 'endereco']
 
 
 class ClienteFilter(django_filters.FilterSet):
@@ -15,12 +16,12 @@ class ClienteFilter(django_filters.FilterSet):
 
     class Meta:
         model = Cliente
-        fields = ['nome', 'endereco']
+        fields = ['nome', 'endereco', 'vencimento']
 
 
 class ComprovanteFilter(django_filters.FilterSet):
     data_pagamento = django_filters.DateFromToRangeFilter()
-    cliente = django_filters.CharFilter(field_name='cliente__nome', lookup_expr='icontains')
+    cliente = django_filters.NumberFilter(field_name='cliente_id')
 
     class Meta:
         model = Comprovante
