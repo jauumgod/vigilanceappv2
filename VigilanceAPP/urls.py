@@ -1,4 +1,6 @@
 from django.urls import path, include
+
+from VigilanceAPP.serializers import UserAdminViewSet
 from .views import (
     ClientesCreateView,
     ConfiguracaoComprovanteViewSet,
@@ -19,6 +21,7 @@ router.register(r'titulos', TitulosCreateView, basename='titulos')
 router.register(r'comprovantes', ComprovanteCreateView, basename='comprovantes')
 router.register(r'configuracao-comprovante', ConfiguracaoComprovanteViewSet)
 router.register(r'rondas', RondasCreateView, basename='rondas')
+router.register(r'admin/users', UserAdminViewSet, basename='admin-users')
 
 urlpatterns = router.urls
 

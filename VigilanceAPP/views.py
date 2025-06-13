@@ -14,16 +14,29 @@ from rest_framework.decorators import permission_classes
 from django.utils.timezone import now
 from django.db.models import Sum
 from datetime import timedelta
+from rest_framework.pagination import PageNumberPagination
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
 
+
+
+class ClientePagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
 
 class ClientesCreateView(viewsets.ModelViewSet):
     queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
     filter_backends = [DjangoFilterBackend]
+    pagination_class = ClientePagination
     filterset_class = ClienteFilter
 
+    def perform_create(self, serializer):
+        try:
+            serializer.save()
+        except DjangoValidationError as e:
+            raise DRFValidationError({"detail": e.messages})
 
-from rest_framework.pagination import PageNumberPagination
 
 class TituloPagination(PageNumberPagination):
     page_size = 10

@@ -9,11 +9,36 @@ class Rondas(models.Model):
     responsavel = models.CharField(max_length=255)
     telefone = models.CharField(max_length=14)
     
+#Verificação de Nome + Telefone
+def validar_cpf(value):
+    cpf = ''.join(filter(str.isdigit, value))
+    if len(cpf) != 11:
+        raise ValidationError('CPF deve conter 11 dígitos.')
+
+    if cpf == cpf[0] * 11:
+        raise ValidationError('CPF inválido.')
+
+    soma = 0
+    for i in range(9):
+        soma += int(cpf[i]) * (10 - i)
+    resto = soma % 11
+    digito1 = 0 if resto < 2 else 11 - resto
+
+    soma = 0
+    for i in range(10):
+        soma += int(cpf[i]) * (11 - i)
+    resto = soma % 11
+    digito2 = 0 if resto < 2 else 11 - resto
+
+    if cpf[-2:] != f"{digito1}{digito2}":
+        raise ValidationError('CPF inválido.')
+    
 
 class Cliente(models.Model):
     nome = models.CharField(max_length=255)
+    cpf = models.CharField(max_length=12, null=True, blank=True, validators=[validar_cpf])
     telefone = models.CharField(max_length=14)
-    endereco = models.CharField(max_length=255, null=True, blank=True) #bairro
+    endereco = models.CharField(max_length=255, null=True, blank=True)
     cep = models.CharField(max_length=15, null=True, blank=True)
     numero_casa = models.IntegerField(null=True, blank=True)
     cidade = models.CharField(max_length=255, null=True, blank=True)
@@ -22,7 +47,7 @@ class Cliente(models.Model):
     parcelas = models.IntegerField(default=12)
     ativo = models.BooleanField(default=True)
     rondas = models.ForeignKey(
-        Rondas,on_delete=models.CASCADE,
+        Rondas, on_delete=models.CASCADE,
         related_name='rondas',
         null=True,
         blank=True
@@ -30,6 +55,21 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nome
+
+    def clean(self):
+        # Verifica se já existe outro cliente com mesmo nome e telefone
+        if Cliente.objects.exclude(id=self.id).filter(nome=self.nome, telefone=self.telefone).exists():
+            raise ValidationError("Já existe um cliente com este nome e telefone.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()  # chama clean() antes de salvar
+        super().save(*args, **kwargs)
+
+    def titulos_em_aberto(self):
+        return self.titulos.filter(quitado=False).count()
+
+    def todos_titulos_quitados(self):
+        return not self.titulos.filter(quitado=False).exists()
     
 # class CodigoSequencial(models.Model):
 #     last_code = models.IntegerField(default=1)
@@ -48,31 +88,20 @@ class Titulo(models.Model):
     quitado = models.BooleanField(default=False)
     endereco = models.CharField(max_length=255, blank=True)
     numero_casa = models.IntegerField(null=True, blank=True)
-    # codigo = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    ativo = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
         self.valor = self.cliente.valor
         self.endereco = self.cliente.endereco
-
-        # if not self.codigo:
-        #     for _ in range(5):  # Tenta gerar até 5 vezes
-        #         with transaction.atomic():
-        #             sequencia = CodigoSequencial.objects.select_for_update().first()
-        #             if not sequencia:
-        #                 sequencia = CodigoSequencial.objects.create()
-
-        #             novo_codigo = sequencia.gerar_codigo()
-
-        #             if not Titulo.objects.filter(codigo=novo_codigo).exists():
-        #                 self.codigo = novo_codigo
-        #                 break
-        #     else:
-        #         raise ValueError("Não foi possível gerar um código único para o título.")
+        self.numero_casa = self.cliente.numero_casa
 
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.cliente}"
+    
+
+
 
 
 def validate_cnpj(value):
