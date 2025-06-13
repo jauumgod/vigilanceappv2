@@ -1,0 +1,7 @@
+
+
+
+def buscarCEP(cep):
+    url = ''
+    
+

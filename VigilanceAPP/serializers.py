@@ -1,4 +1,4 @@
-from .models import ConfiguracaoComprovante, Titulo, Cliente, Comprovante
+from .models import ConfiguracaoComprovante, Rondas, Titulo, Cliente, Comprovante
 from rest_framework import serializers
 
 
@@ -9,6 +9,11 @@ class TituloSerializer(serializers.ModelSerializer):
     class Meta:
         model = Titulo
         fields = '__all__' 
+        extra_kwargs = {
+            'valor': {'required': False},
+            'vencimento': {'required': False},
+            'cliente': {'required': False},
+        }
 
 
 class ClienteSerializer(serializers.ModelSerializer):
@@ -32,3 +37,9 @@ class ConfiguracaoComprovanteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracaoComprovante
         fields = ['id', 'logo']
+
+
+class RondasSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rondas
+        fields = '__all__'

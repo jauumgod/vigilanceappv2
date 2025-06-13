@@ -1,10 +1,19 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.views import APIView
-from .models import Comprovante, Cliente, ConfiguracaoComprovante, Titulo
-from .serializers import ComprovanteSerializer, ClienteSerializer, ConfiguracaoComprovanteSerializer, TituloSerializer
+from .models import Comprovante, Cliente, ConfiguracaoComprovante, Rondas, Titulo
+from .serializers import ComprovanteSerializer, ClienteSerializer, ConfiguracaoComprovanteSerializer, RondasSerializer, TituloSerializer
 from .filters import ComprovanteFilter, ClienteFilter, TituloFilter
-
+from django.db.models.functions import Lower
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from . import utils
+from rest_framework.permissions import AllowAny
+from rest_framework.decorators import permission_classes
+from django.utils.timezone import now
+from django.db.models import Sum
+from datetime import timedelta
 
 
 class ClientesCreateView(viewsets.ModelViewSet):
@@ -14,12 +23,19 @@ class ClientesCreateView(viewsets.ModelViewSet):
     filterset_class = ClienteFilter
 
 
+from rest_framework.pagination import PageNumberPagination
+
+class TituloPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
 
 class TitulosCreateView(viewsets.ModelViewSet):
     queryset = Titulo.objects.all()
     serializer_class = TituloSerializer
     filter_backends = [DjangoFilterBackend]
+    pagination_class = TituloPagination
     filterset_class = TituloFilter
+
 
 
 class ComprovanteCreateView(viewsets.ModelViewSet):
@@ -71,13 +87,6 @@ class ConfiguracaoComprovanteViewSet(viewsets.ModelViewSet):
         fields = '__all__' 
 
 
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework import status
-from . import utils
-from rest_framework.permissions import AllowAny
-from rest_framework.decorators import permission_classes
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def gerar_titulos(request):
@@ -87,8 +96,6 @@ def gerar_titulos(request):
     except Exception as e:
         return Response({'erro': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
-
-from django.db.models.functions import Lower
 
 @api_view(['GET'])
 def enderecos_unicos(request):
@@ -100,8 +107,6 @@ def enderecos_unicos(request):
     )
     return Response(sorted(enderecos))
 
-from rest_framework.views import APIView
-
 
 
 class LogoComprovanteView(APIView):
@@ -111,4 +116,36 @@ class LogoComprovanteView(APIView):
         return Response(serializer.data)
 
 
+
+class RondasCreateView(viewsets.ModelViewSet):
+    queryset = Rondas.objects.all()
+    serializer_class = RondasSerializer
+
+
+
+@api_view(['GET'])
+def dashboard_data(request):
+    hoje = now().date()
+
+    total_clientes = Cliente.objects.filter(ativo=True).count()
+
+    cobrancas_totais = Titulo.objects.aggregate(total=Sum('valor'))['total'] or 0
+
+    recebido_hoje = Titulo.objects.filter(quitado=True, pagamento=hoje).aggregate(total=Sum('valor'))['total'] or 0
+
     
+    recebimentos = []
+    for i in range(7):
+        dia = hoje - timedelta(days=i)
+        total_dia = Titulo.objects.filter(quitado=True, pagamento=dia).aggregate(total=Sum('valor'))['total'] or 0
+        recebimentos.append({
+            'data': dia.strftime('%Y-%m-%d'),
+            'valor': total_dia
+        })
+
+    return Response({
+        'clientes_cadastrados': total_clientes,
+        'cobrancas_totais': cobrancas_totais,
+        'recebido_hoje': recebido_hoje,
+        'evolucao_recebimentos': list(reversed(recebimentos))
+    })

@@ -8,7 +8,7 @@ class TituloFilter(django_filters.FilterSet):
 
     class Meta:
         model = Titulo
-        fields = ['vencimento', 'nome', 'endereco']
+        fields = ['id','quitado', 'cliente__nome','cliente', 'nome', 'endereco', 'vencimento']
 
 
 class ClienteFilter(django_filters.FilterSet):
@@ -16,7 +16,7 @@ class ClienteFilter(django_filters.FilterSet):
 
     class Meta:
         model = Cliente
-        fields = ['nome', 'endereco', 'vencimento']
+        fields = ['nome', 'endereco', 'vencimento', 'ativo']
 
 
 class ComprovanteFilter(django_filters.FilterSet):
@@ -27,4 +27,11 @@ class ComprovanteFilter(django_filters.FilterSet):
         model = Comprovante
         fields = ['cliente', 'data_pagamento']
 
+
+# class RondaFilter():
+#     nome = django_filters.CharFilter(lookup_expr='icontains')
+
+#     class Meta:
+#         model = Comprovante
+#         fields = ['nome']
 
