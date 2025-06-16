@@ -136,11 +136,11 @@ def validate_cnpj(value):
 class ConfiguracaoComprovante(models.Model):
     logo = models.ImageField(upload_to='logos/', blank=True)
     nome_empresa = models.CharField(max_length=255, null=True, blank=True)
-    pix = models.IntegerField(unique=True, null=True, blank=True)
+    pix = models.CharField(max_length=255, null=True, blank=True)
     mensagem = models.TextField(null=True, blank=True)
     nome_responsavel = models.CharField(max_length=255, null=True, blank=True)
     cnpj = models.CharField(max_length=255, null=True, blank=True, validators=[validate_cnpj])
-
+    criado_em = models.DateField(auto_now_add=True, blank=True, null=True)
 
     def __str__(self):
         return f"Logo do comprovante - ID {self.id}"

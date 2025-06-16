@@ -8,7 +8,8 @@ from .views import (
     RondasCreateView,
     TitulosCreateView, 
     ComprovanteCreateView,
-    ComprovanteListView, gerar_titulos, enderecos_unicos, dashboard_data
+    ComprovanteListView,
+    UltimaConfiguracaoComprovante, gerar_titulos, enderecos_unicos, dashboard_data
 )
 
 from rest_framework.routers import DefaultRouter
@@ -32,5 +33,6 @@ urlpatterns = [
     path('comprovantes/criar/', ComprovanteListView.as_view(), name='criar_comprovante'),
     # path('comprovantes/', ComprovanteListView.as_view(), name='criar_comprovante'),
     path('dashboard/', dashboard_data, name='dashboard-data'),
+    path('configuracao-comprovante/ultima/', UltimaConfiguracaoComprovante.as_view()),
     path('', include(router.urls)),
 ]

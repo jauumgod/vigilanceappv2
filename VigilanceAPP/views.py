@@ -162,3 +162,10 @@ def dashboard_data(request):
         'recebido_hoje': recebido_hoje,
         'evolucao_recebimentos': list(reversed(recebimentos))
     })
+
+
+class UltimaConfiguracaoComprovante(APIView):
+    def get(self, request):
+        ultima = ConfiguracaoComprovante.objects.last()
+        serializer = ConfiguracaoComprovanteSerializer(ultima)
+        return Response(serializer.data)

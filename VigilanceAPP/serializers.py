@@ -47,8 +47,7 @@ class ComprovanteSerializer(serializers.ModelSerializer):
 class ConfiguracaoComprovanteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracaoComprovante
-        fields = ['id', 'logo']
-
+        fields = '__all__'
 
 class RondasSerializer(serializers.ModelSerializer):
     class Meta:
