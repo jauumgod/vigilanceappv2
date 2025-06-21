@@ -25,16 +25,21 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'VigilanceAPP.apps.VigilanceappConfig',
-    'UsuariosAPP',
     'django_filters',
     'rest_framework_simplejwt',
     'corsheaders',
 
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://vigilanceapi.xyz',
+    'http://vigilanceapi.xyz',
+]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -42,6 +47,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 ]
+
+
+
 
 ROOT_URLCONF = 'vigilanceAPI.urls'
 
@@ -95,7 +103,8 @@ USE_I18N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = '/var/www/vigilanceapi/static'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

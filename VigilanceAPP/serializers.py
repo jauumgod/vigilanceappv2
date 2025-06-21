@@ -1,5 +1,7 @@
 from .models import ConfiguracaoComprovante, Rondas, Titulo, Cliente, Comprovante
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 
 class ClienteSerializer(serializers.ModelSerializer):
     # vencimento = serializers.SerializerMethodField()
@@ -62,9 +64,40 @@ from rest_framework.serializers import ModelSerializer
 class UserSerializer(ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "is_staff", "is_active"]
+        fields = ['id', 'username', 'email', 'password']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        user = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+        )
+        user.set_password(validated_data['password'])  # criptografa a senha
+        user.save()
+        return user
 
 class UserAdminViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAdminUser]
+
+
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Adicione campos personalizados ao token
+        token['username'] = user.username
+        token['email'] = user.email
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['user'] = {
+            'username': self.user.username,
+            'email': self.user.email,
+        }
+        return data

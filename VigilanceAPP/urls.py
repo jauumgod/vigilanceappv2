@@ -11,7 +11,8 @@ from .views import (
     ComprovanteListView,
     UltimaConfiguracaoComprovante, gerar_titulos, enderecos_unicos, dashboard_data
 )
-
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import  CustomTokenObtainPairView, UserListCreateView
 from rest_framework.routers import DefaultRouter
 
 
@@ -34,5 +35,8 @@ urlpatterns = [
     # path('comprovantes/', ComprovanteListView.as_view(), name='criar_comprovante'),
     path('dashboard/', dashboard_data, name='dashboard-data'),
     path('configuracao-comprovante/ultima/', UltimaConfiguracaoComprovante.as_view()),
+    path('login/', CustomTokenObtainPairView.as_view(), name='login'),
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('', include(router.urls)),
 ]

@@ -71,13 +71,13 @@ class Cliente(models.Model):
     def todos_titulos_quitados(self):
         return not self.titulos.filter(quitado=False).exists()
     
-# class CodigoSequencial(models.Model):
-#     last_code = models.IntegerField(default=1)
+class CodigoSequencial(models.Model):
+    last_code = models.IntegerField(default=1)
 
-#     def gerar_codigo(self):
-#         self.last_code += 1
-#         self.save()
-#         return f"CMP-{self.last_code:06d}"
+    def gerar_codigo(self):
+        self.last_code += 1
+        self.save()
+        return f"RZTCH-{self.last_code:06d}"
 
 
 class Titulo(models.Model):
@@ -89,13 +89,24 @@ class Titulo(models.Model):
     endereco = models.CharField(max_length=255, blank=True)
     numero_casa = models.IntegerField(null=True, blank=True)
     ativo = models.BooleanField(default=True)
+    codigo = models.CharField(max_length=255, blank=True, editable=False)
+
 
     def save(self, *args, **kwargs):
-        self.valor = self.cliente.valor
-        self.endereco = self.cliente.endereco
-        self.numero_casa = self.cliente.numero_casa
+        if self._state.adding:
+            if self.valor in [None, '']:
+                self.valor = self.cliente.valor
+            if self.endereco in [None, '']:
+                self.endereco = self.cliente.endereco
+            if self.numero_casa in [None, '']:
+                self.numero_casa = self.cliente.numero_casa
+
+        if not self.codigo:
+            sequencia, _ = CodigoSequencial.objects.get_or_create(id=1)
+            self.codigo = sequencia.gerar_codigo()
 
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return f"{self.cliente}"

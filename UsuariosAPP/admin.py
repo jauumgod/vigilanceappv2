@@ -3,4 +3,4 @@ from .models import Usuarios
 
 
 
-admin.site.register(Usuarios)
+# admin.site.register(Usuarios)

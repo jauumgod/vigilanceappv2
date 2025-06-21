@@ -2,12 +2,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from .models import Comprovante, Cliente, ConfiguracaoComprovante, Rondas, Titulo
-from .serializers import ComprovanteSerializer, ClienteSerializer, ConfiguracaoComprovanteSerializer, RondasSerializer, TituloSerializer
+from .serializers import ComprovanteSerializer, ClienteSerializer, ConfiguracaoComprovanteSerializer, RondasSerializer, TituloSerializer, UserSerializer
 from .filters import ComprovanteFilter, ClienteFilter, TituloFilter
 from django.db.models.functions import Lower
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, permissions
 from . import utils
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
@@ -17,6 +17,10 @@ from datetime import timedelta
 from rest_framework.pagination import PageNumberPagination
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from .serializers import CustomTokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth.models import User  
+
 
 
 
@@ -169,3 +173,30 @@ class UltimaConfiguracaoComprovante(APIView):
         ultima = ConfiguracaoComprovante.objects.last()
         serializer = ConfiguracaoComprovanteSerializer(ultima)
         return Response(serializer.data)
+    
+
+class UserListCreateView(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    permission_classes = (permissions.AllowAny,)
+    serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = serializer.user
+        
+
+
+        response_data = {
+            'access': serializer.validated_data['access'],
+            'refresh': serializer.validated_data['refresh'],
+            'user_id': user.id,
+            'username': user.username  
+        }
+        
+        return Response(response_data)
