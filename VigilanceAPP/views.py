@@ -1,8 +1,9 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.views import APIView
-from .models import Comprovante, Cliente, ConfiguracaoComprovante, Rondas, Titulo
-from .serializers import ComprovanteSerializer, ClienteSerializer, ConfiguracaoComprovanteSerializer, RondasSerializer, TituloSerializer, UserSerializer
+from VigilanceAPP.vigilance_permissions import IsEmpresaOwner
+from .models import Comprovante, Cliente, ConfiguracaoComprovante, Empresa, Rondas, Titulo, UserEmpresa
+from .serializers import ComprovanteSerializer, ClienteSerializer, ConfiguracaoComprovanteSerializer, EmpresaSerializer, RondasSerializer, TituloSerializer, UserSerializer
 from .filters import ComprovanteFilter, ClienteFilter, TituloFilter
 from django.db.models.functions import Lower
 from rest_framework.decorators import api_view
@@ -23,21 +24,36 @@ from django.contrib.auth.models import User
 
 
 
+class EmpresaCreateView(viewsets.ModelViewSet):
+    queryset = Empresa.objects.all()
+    serializer_class = EmpresaSerializer
+
+
 
 class ClientePagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
 
+
 class ClientesCreateView(viewsets.ModelViewSet):
-    queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
     filter_backends = [DjangoFilterBackend]
     pagination_class = ClientePagination
     filterset_class = ClienteFilter
 
+    def get_queryset(self):
+        empresa_ativa = UserEmpresa.objects.filter(user=self.request.user, is_active=True).first()
+        if empresa_ativa:
+            return Cliente.objects.filter(empresa=empresa_ativa.empresa)
+        return Cliente.objects.none()
+
+
     def perform_create(self, serializer):
         try:
-            serializer.save()
+            empresa_ativa = UserEmpresa.get_empresa_ativa(self.request.user)
+            if not empresa_ativa:
+                raise DRFValidationError({"Detail" : "Nenhuma empresa ativa associada"})
+            serializer.save(empresa=empresa_ativa.empresa)
         except DjangoValidationError as e:
             raise DRFValidationError({"detail": e.messages})
 
@@ -46,20 +62,41 @@ class TituloPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = 'page_size'
 
+
 class TitulosCreateView(viewsets.ModelViewSet):
-    queryset = Titulo.objects.all()
     serializer_class = TituloSerializer
     filter_backends = [DjangoFilterBackend]
     pagination_class = TituloPagination
     filterset_class = TituloFilter
 
+    def get_queryset(self):
+        
+        user = self.request.user
+        user_empresa = UserEmpresa.objects.filter(user=user, is_active=True).first()
+
+        if not user_empresa:
+            return Titulo.objects.none()
+        
+        return Titulo.objects.filter(empresa=user_empresa.empresa)
+
 
 
 class ComprovanteCreateView(viewsets.ModelViewSet):
-    queryset = Comprovante.objects.all()
     serializer_class = ComprovanteSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ComprovanteFilter
+
+    def get_queryset(self):
+        user = self.request.user
+        user_empresa = UserEmpresa.objects.filter(user=user, is_active=True).first()
+        
+        if not user_empresa:
+            return Comprovante.objects.none()
+        
+        return Comprovante.objects.filter(empresa=user_empresa.empresa)
+
+
+
 
 class ComprovanteListView(APIView):
     def get(self, request):
@@ -96,12 +133,24 @@ class ComprovanteListView(APIView):
 
 
 class ConfiguracaoComprovanteViewSet(viewsets.ModelViewSet):
-    queryset = ConfiguracaoComprovante.objects.all()
     serializer_class = ConfiguracaoComprovanteSerializer
 
-    class Meta:
-        model = Comprovante
-        fields = '__all__' 
+    def get_queryset(self):
+        empresa_ativa = UserEmpresa.get_empresa_ativa(self.request.user)
+        if empresa_ativa:
+            return ConfiguracaoComprovante.objects.filter(empresa=empresa_ativa.empresa)
+        return ConfiguracaoComprovante.objects.none()
+    
+    def perform_create(self, serializer):
+        try:
+            empresa_ativa = UserEmpresa.get_empresa_ativa(self.request.user)
+            if not empresa_ativa:
+                raise DRFValidationError({"Detail" : "Nenhuma empresa ativa associada"})
+            serializer.save(empresa=empresa_ativa.empresa)
+        except DjangoValidationError as e:
+            raise DRFValidationError({"detail": e.messages})
+
+
 
 
 @api_view(['POST'])
@@ -116,12 +165,19 @@ def gerar_titulos(request):
 
 @api_view(['GET'])
 def enderecos_unicos(request):
+    user = request.user
+    empresa_obj = UserEmpresa.get_empresa_ativa(user)
+    if not empresa_obj:
+        return Response({'Detail':'Usuário não possui empresa vinculada.'})
+    empresa_id = empresa_obj.empresa_id
+
     enderecos = (
-        Cliente.objects
+        Cliente.objects.filter(empresa_id=empresa_id)
         .values_list('endereco', flat=True)
         .distinct()
         .order_by(Lower('endereco'))
     )
+
     return Response(sorted(enderecos))
 
 
@@ -135,26 +191,45 @@ class LogoComprovanteView(APIView):
 
 
 class RondasCreateView(viewsets.ModelViewSet):
-    queryset = Rondas.objects.all()
+    
     serializer_class = RondasSerializer
+    permission_classes = [IsEmpresaOwner]
+
+    def get_queryset(self):
+        user = self.request.user
+        empresa_obj = UserEmpresa.get_empresa_ativa(user)
+        empresa_id = empresa_obj.empresa_id
+
+        if empresa_obj:
+            return Rondas.objects.filter(empresa_id=empresa_id)
+        return Rondas.objects.none()
 
 
 
 @api_view(['GET'])
 def dashboard_data(request):
     hoje = now().date()
+    user = request.user
+    empresa_obj = UserEmpresa.get_empresa_ativa(user)
+    if not empresa_obj:
+        return Response({'detail': 'Usuário não possui empresa vinculada!'})
+    empresa_id = empresa_obj.empresa_id
 
-    total_clientes = Cliente.objects.filter(ativo=True).count()
+    total_clientes = Cliente.objects.filter(ativo=True, empresa_id=empresa_id).count()
 
-    cobrancas_totais = Titulo.objects.aggregate(total=Sum('valor'))['total'] or 0
+    cobrancas_totais = Titulo.objects.filter(empresa_id=empresa_id).aggregate(total=Sum('valor'))['total'] or 0
 
-    recebido_hoje = Titulo.objects.filter(quitado=True, pagamento=hoje).aggregate(total=Sum('valor'))['total'] or 0
+    recebido_hoje = Titulo.objects.filter(quitado=True, pagamento=hoje, empresa_id=empresa_id).aggregate(total=Sum('valor'))['total'] or 0
 
     
     recebimentos = []
     for i in range(7):
         dia = hoje - timedelta(days=i)
-        total_dia = Titulo.objects.filter(quitado=True, pagamento=dia).aggregate(total=Sum('valor'))['total'] or 0
+        total_dia = Titulo.objects.filter(
+            quitado=True,
+            pagamento=dia,
+            empresa_id=empresa_id
+        ).aggregate(total=Sum('valor'))['total'] or 0
         recebimentos.append({
             'data': dia.strftime('%Y-%m-%d'),
             'valor': total_dia
@@ -180,6 +255,7 @@ class UserListCreateView(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
 
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
     serializer_class = CustomTokenObtainPairSerializer
@@ -189,6 +265,16 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         serializer.is_valid(raise_exception=True)
         
         user = serializer.user
+
+        empresa_ativa = (
+            UserEmpresa.objects.filter(user=user, is_active=True)
+            .select_related('empresa')
+            .first()
+        )
+        empresa_data = {
+            "id" : empresa_ativa.empresa.id,
+            "nome" : empresa_ativa.empresa.nome,
+        } if empresa_ativa else None
         
 
 
@@ -196,7 +282,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             'access': serializer.validated_data['access'],
             'refresh': serializer.validated_data['refresh'],
             'user_id': user.id,
-            'username': user.username  
+            'username': user.username,
+            'empresa_ativa': empresa_data
         }
         
         return Response(response_data)

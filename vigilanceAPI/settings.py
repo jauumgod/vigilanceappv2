@@ -79,6 +79,17 @@ DATABASES = {
     }
 }
 
+# DATABASES = {
+#   'default': {
+#     'ENGINE': 'django.db.backends.postgresql',
+#     'NAME': 'vigilance_db',
+#     'USER': 'vigilance_user',
+#     'PASSWORD': 'A1h2q4v1@1',
+#     'HOST': '177.153.20.170',
+#     'PORT': '5433',
+#   }
+# }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {

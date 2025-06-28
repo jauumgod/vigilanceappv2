@@ -1,13 +1,59 @@
 from django.db import models, transaction
 import re
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 import uuid
 
+User = get_user_model()
+
+
+class Empresa(models.Model):
+
+    PESSOA_CHOICES = [
+        ('F', 'Física'),
+        ('J', 'Jurídica'),
+    ]
+    nome = models.CharField(max_length=255)
+    cnpj = models.CharField(max_length=15, null=True, blank=True)
+    endereco = models.CharField(max_length=255, null=True, blank=True)
+    telefone = models.CharField(max_length=18)
+    pessoa = models.CharField(
+        max_length=1,
+        choices=PESSOA_CHOICES,
+        default='F'
+    )
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nome
+
+class UserEmpresa(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='empresas')
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='usuarios')
+    is_admin = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
+
+    @staticmethod
+    def get_empresa_ativa(user):
+        return user.empresas.filter(is_active=True).first()
+
+    class Meta:
+        unique_together = ('user','empresa')
+
+    def __str__(self):
+        return self.empresa.nome
 
 class Rondas(models.Model):
     nome = models.CharField(max_length=255)
     responsavel = models.CharField(max_length=255)
     telefone = models.CharField(max_length=14)
+    empresa = models.ForeignKey(Empresa,
+                                on_delete=models.CASCADE,
+                                related_name='rondas_empresas'
+                            )
+    
+    def __str__(self):
+        return self.nome
     
 #Verificação de Nome + Telefone
 def validar_cpf(value):
@@ -52,6 +98,12 @@ class Cliente(models.Model):
         null=True,
         blank=True
     )
+    empresa = models.ForeignKey(Empresa,
+                                on_delete=models.CASCADE,
+                                related_name='cliente_empresas'
+                            )
+
+    
 
     def __str__(self):
         return self.nome
@@ -90,7 +142,10 @@ class Titulo(models.Model):
     numero_casa = models.IntegerField(null=True, blank=True)
     ativo = models.BooleanField(default=True)
     codigo = models.CharField(max_length=255, blank=True, editable=False)
-
+    empresa = models.ForeignKey(Empresa,
+                                on_delete=models.CASCADE,
+                                related_name='titulo_empresas'
+                            )
 
     def save(self, *args, **kwargs):
         if self._state.adding:
@@ -145,14 +200,18 @@ def validate_cnpj(value):
 
 
 class ConfiguracaoComprovante(models.Model):
-    logo = models.ImageField(upload_to='logos/', blank=True)
+    logo = models.ImageField(upload_to='logos/', blank=True, null=True)
     nome_empresa = models.CharField(max_length=255, null=True, blank=True)
     pix = models.CharField(max_length=255, null=True, blank=True)
     mensagem = models.TextField(null=True, blank=True)
     nome_responsavel = models.CharField(max_length=255, null=True, blank=True)
     cnpj = models.CharField(max_length=255, null=True, blank=True, validators=[validate_cnpj])
     criado_em = models.DateField(auto_now_add=True, blank=True, null=True)
-
+    empresa = models.ForeignKey(Empresa,
+                                on_delete=models.CASCADE,
+                                related_name='config_empresas'
+                            )
+    
     def __str__(self):
         return f"Logo do comprovante - ID {self.id}"
 
@@ -163,6 +222,10 @@ class Comprovante(models.Model):
     valor_pago = models.DecimalField(max_digits=10, decimal_places=2)
     data_pagamento = models.DateField(auto_now_add=True)
     numero = models.PositiveIntegerField(unique=True, blank=True, null=True)
+    empresa = models.ForeignKey(Empresa,
+                                on_delete=models.CASCADE,
+                                related_name='comprovante_empresas'
+                            )
 
     def __str__(self):
         return str(self.cliente)
@@ -173,4 +236,14 @@ class Comprovante(models.Model):
             self.numero = (ultimo_numero or 0) + 1
         super().save(*args, **kwargs)
 
-    
+#Melhoria futura para Cobranças
+  
+# class Cobranca(models.Model):
+#     email = models.EmailField()
+    # empresa = models.ForeignKey(Empresa,
+    #                             on_delete=models.CASCADE,
+    #                             related_name='cobranca_empresa'
+    #                         )
+
+#     def __str__(self):
+#         return self.email

@@ -1,7 +1,24 @@
-from .models import ConfiguracaoComprovante, Rondas, Titulo, Cliente, Comprovante
+from .models import ConfiguracaoComprovante, Empresa, Rondas, Titulo, Cliente, Comprovante, UserEmpresa
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.models import User
+from rest_framework import viewsets
+from rest_framework.permissions import IsAdminUser
+from rest_framework.serializers import ModelSerializer
+import re
 
+
+class EmpresaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Empresa
+        fields = '__all__'
+
+    def validade_cnpj(self,value):
+        cnpj_numerico = re.sub(r'\D','', value)
+
+        if len(cnpj_numerico) != 14:
+            raise serializers.ValidationError('CNPJ deve conter 14 digitos.')
+        return cnpj_numerico
 
 class ClienteSerializer(serializers.ModelSerializer):
     # vencimento = serializers.SerializerMethodField()
@@ -13,6 +30,9 @@ class ClienteSerializer(serializers.ModelSerializer):
         model = Cliente
         unique_together = ('nome', 'telefone')
         fields = '__all__'
+        extra_kwargs = {
+            "empresa": {"required": False},
+        }
 
     def get_titulos_em_aberto(self, obj):
         return obj.titulos_em_aberto()
@@ -50,30 +70,35 @@ class ConfiguracaoComprovanteSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfiguracaoComprovante
         fields = '__all__'
+        read_only_fields = ('empresa',)
+
 
 class RondasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rondas
         fields = '__all__'
 
-from django.contrib.auth.models import User
-from rest_framework import viewsets
-from rest_framework.permissions import IsAdminUser
-from rest_framework.serializers import ModelSerializer
+
 
 class UserSerializer(ModelSerializer):
+    empresa_id = serializers.PrimaryKeyRelatedField(queryset=Empresa.objects.all(), write_only=True)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password']
+        fields = ['id', 'username', 'email', 'password', 'empresa_id']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
+        empresa = validated_data.pop('empresa_id')
         user = User(
             username=validated_data['username'],
             email=validated_data['email'],
         )
         user.set_password(validated_data['password'])  # criptografa a senha
         user.save()
+
+        UserEmpresa.objects.create(user=user, empresa=empresa, is_active=True)
+        
         return user
 
 class UserAdminViewSet(viewsets.ModelViewSet):
